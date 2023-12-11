@@ -70,7 +70,7 @@ fn exec(command: &mut MainCommand) {
     let path: String = tools_list.tools[index].path.clone();
     let default_args: Vec<String> = tools_list.tools[index].default_args.clone();
     let update = command.update;
-    let list = command.list;
+    //let list = command.list;
     let git_path = tools_list.tools[index].git.clone();
     let args: Vec<String> = command.args.clone();
     //if list {
