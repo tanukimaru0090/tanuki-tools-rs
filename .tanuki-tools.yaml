@@ -1,0 +1,20 @@
+# tanuki-tools
+# tki pjc new test --lang rust 
+# tki allmk .mk.conf
+tools:
+        - name: allmk
+          path: /home/daruma/use-script/allmk
+          git: https://github.com/tanukimaru0090/allmk-rs
+          default_args: 
+        - name: pjc 
+          path: /home/daruma/use-script/pjc 
+          git: https://github.com/tanukimaru0090/project-cli-rs 
+          default_args: 
+        - name: gc 
+          path: /usr/bin/g++ 
+          git:
+          default_args: ["-O2","-std=c++11"]
+        - name: rs 
+          path: $HOME/.cargo/bin/cargo 
+          git:
+          default_args: []
