@@ -94,7 +94,7 @@ fn exec(command: &mut MainCommand) {
             }
         } else {
             if !args.is_empty() {
-                let out = cmd.args(&args).args(&default_args).output().expect("");
+                let out = cmd.args(&default_args).args(&args).output().expect("");
                 print_command_output(&out);
             } else {
                 let out = cmd.args(&default_args).output().expect("");
