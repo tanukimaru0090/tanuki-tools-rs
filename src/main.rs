@@ -1,6 +1,5 @@
 use clap::{ArgGroup, Parser, Subcommand, ValueEnum};
 use serde::{Deserialize, Serialize};
-use std::env;
 use std::fs::File;
 use std::process::{Command, Output};
 #[derive(Debug, Deserialize, Serialize, PartialEq)]
@@ -15,13 +14,22 @@ struct Tools {
     git: String,
     default_args: Vec<String>,
 }
-#[derive(Debug, PartialEq, Parser)]
+
+#[derive(Debug, Parser)]
+struct List {}
+#[derive(Debug, Subcommand)]
+enum MainSubCommand {
+    List(List),
+}
+
+#[derive(Debug, Parser)]
 struct MainCommand {
+    #[clap(subcommand)]
+    subcommand: Option<MainSubCommand>,
+    #[arg(required = false, default_value = "")]
     tool: String,
     #[arg(short, long, required = false)]
     update: bool,
-    //#[arg(required = false)]
-    //list:bool,
     #[arg(
         required = false,
         default_value = "",
@@ -38,6 +46,7 @@ struct MainCommand {
     )]
     tanuki_conf_path: String,
 }
+
 fn load_config(path: &str) -> Result<ToolsList, serde_yaml::Error> {
     let file = File::open(path).expect(&format!("File not found: \"{}\" :)", path));
     let tools: Result<_, _> = serde_yaml::from_reader::<File, ToolsList>(file);
@@ -63,28 +72,65 @@ fn git_clone(git_path: &str) {
         .expect("");
     print_command_output(&out);
 }
+fn git_path_to_folder(git_path: &str) -> String {
+    let pattern = "https://github.com/";
 
-fn exec(command: &mut MainCommand) {
-    let tools_list: ToolsList = load_config(&command.tanuki_conf_path).unwrap();
+    let part: Vec<&str> = git_path.split(pattern).collect();
+    let mut user_name = String::new();
+    let mut folder_name = String::new();
+    if let Some(uname) = part.get(1) {
+        user_name = uname.to_string();
+        let part: Vec<&str> = git_path.split(&user_name).collect();
+        if let Some(fname) = part.get(1) {
+            folder_name = fname.to_string();
+        }
+    }
+
+    folder_name
+}
+fn print_tools_list(tools_list: &ToolsList) {
+    println!("-- Current registered tools --");
+    for tools in &tools_list.tools {
+        println!("name: {}", tools.name);
+    }
+}
+fn exec(command: &MainCommand) -> Result<(), serde_yaml::Error> {
+    let tools_list: ToolsList = load_config(&command.tanuki_conf_path)?;
     let (res, index) = search_tools_name(&tools_list, &command.tool);
     let path: String = tools_list.tools[index].path.clone();
     let default_args: Vec<String> = tools_list.tools[index].default_args.clone();
     let update = command.update;
-    //let list = command.list;
     let git_path = tools_list.tools[index].git.clone();
     let args: Vec<String> = command.args.clone();
-    //if list {
-        //for tools in tools_list.tools{
-            //println!("tools list: {:?}",tools.name);
-        //}
-        //return;
-    //}
+    match &command.subcommand {
+        Some(sub) => match sub {
+            MainSubCommand::List(_) => {
+                print_tools_list(&tools_list);
+                return Ok(());
+            }
+        },
+        None => {}
+    }
+    // 未実装
+    /*
     if update {
         git_clone(&git_path);
-        //if let Err(e) = env::set_current_dir(
-        //let out =
-    } else {
+        let git_folder = git_path_to_folder(&git_path);
+        println!("git_folder: {}",git_folder);
+        if let Err(e) = env::set_current_dir(&git_folder){
+            println!("{}",e);
+        }else{
+            let mut build_cmd = Command::new("cargo");
+            let build_out = build_cmd.arg("build").arg("--release").output().expect("not found `cargo` command");
+            let bin_path:String = format!("{}/{}","target/release",tools_list.tools[index].name.clone());
+            let mut cp_cmd = Command::new("cp");
+            let cp_out = cp_cmd.arg(&bin_path).arg(".").output().expect("not found `cp` command");
+            let mut del_cmd = Command::new("sudo");
+            let del_out =del_cmd.arg("rm").arg("-r").arg(git_folder).output().expect("not found `rm` command");
+        }
+
     }
+    */
     if res {
         let mut cmd = Command::new(&path);
         if default_args.is_empty() {
@@ -106,9 +152,11 @@ fn exec(command: &mut MainCommand) {
     }
     //println!("{:?}",tools_list);
     //println!("{:?}",command);
+
+    Ok(())
 }
 fn main() -> Result<(), serde_yaml::Error> {
-    let mut main_command = MainCommand::parse();
-    exec(&mut main_command);
+    let main_command = MainCommand::parse();
+    exec(&main_command)?;
     Ok(())
 }
