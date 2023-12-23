@@ -11,7 +11,9 @@ struct ToolsList {
 struct Tools {
     name: String,
     path: String,
+    #[serde(default)]
     git: String,
+    #[serde(default)]
     default_args: Vec<String>,
 }
 
